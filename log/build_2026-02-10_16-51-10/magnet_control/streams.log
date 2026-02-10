@@ -1,0 +1,21 @@
+[0.781s] Invoking command in '/home/dozie/magnetcontrol_ws/build/magnet_control': PYTHONPATH=/home/dozie/magnetcontrol_ws/build/magnet_control/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/dozie/magnetcontrol_ws/install/magnet_control/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/dozie/magnetcontrol_ws/build/magnet_control/build --no-deps symlink_data
+[1.070s] running develop
+[1.290s] running egg_info
+[1.290s] writing magnet_control.egg-info/PKG-INFO
+[1.290s] writing dependency_links to magnet_control.egg-info/dependency_links.txt
+[1.290s] writing entry points to magnet_control.egg-info/entry_points.txt
+[1.290s] writing requirements to magnet_control.egg-info/requires.txt
+[1.290s] writing top-level names to magnet_control.egg-info/top_level.txt
+[1.292s] reading manifest file 'magnet_control.egg-info/SOURCES.txt'
+[1.293s] writing manifest file 'magnet_control.egg-info/SOURCES.txt'
+[1.294s] running build_ext
+[1.294s] Creating /home/dozie/magnetcontrol_ws/install/magnet_control/lib/python3.10/site-packages/magnet-control.egg-link (link to .)
+[1.295s] Installing lung_navigation_sim script to /home/dozie/magnetcontrol_ws/install/magnet_control/lib/magnet_control
+[1.295s] Installing move_waypoints script to /home/dozie/magnetcontrol_ws/install/magnet_control/lib/magnet_control
+[1.296s] Installing mscr_inv_control script to /home/dozie/magnetcontrol_ws/install/magnet_control/lib/magnet_control
+[1.296s] Installing mscr_inv_cosserat script to /home/dozie/magnetcontrol_ws/install/magnet_control/lib/magnet_control
+[1.296s] Installing mscr_raw script to /home/dozie/magnetcontrol_ws/install/magnet_control/lib/magnet_control
+[1.296s] 
+[1.296s] Installed /home/dozie/magnetcontrol_ws/build/magnet_control
+[1.296s] running symlink_data
+[1.319s] Invoked command in '/home/dozie/magnetcontrol_ws/build/magnet_control' returned '0': PYTHONPATH=/home/dozie/magnetcontrol_ws/build/magnet_control/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/dozie/magnetcontrol_ws/install/magnet_control/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/dozie/magnetcontrol_ws/build/magnet_control/build --no-deps symlink_data

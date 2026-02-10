@@ -1,0 +1,19 @@
+running develop
+running egg_info
+writing magnet_control.egg-info/PKG-INFO
+writing dependency_links to magnet_control.egg-info/dependency_links.txt
+writing entry points to magnet_control.egg-info/entry_points.txt
+writing requirements to magnet_control.egg-info/requires.txt
+writing top-level names to magnet_control.egg-info/top_level.txt
+reading manifest file 'magnet_control.egg-info/SOURCES.txt'
+writing manifest file 'magnet_control.egg-info/SOURCES.txt'
+running build_ext
+Creating /home/dozie/magnetcontrol_ws/src/install/magnet_control/lib/python3.10/site-packages/magnet-control.egg-link (link to .)
+Installing lung_navigation_sim script to /home/dozie/magnetcontrol_ws/src/install/magnet_control/lib/magnet_control
+Installing move_waypoints script to /home/dozie/magnetcontrol_ws/src/install/magnet_control/lib/magnet_control
+Installing mscr_inv_control script to /home/dozie/magnetcontrol_ws/src/install/magnet_control/lib/magnet_control
+Installing mscr_inv_cosserat script to /home/dozie/magnetcontrol_ws/src/install/magnet_control/lib/magnet_control
+Installing mscr_raw script to /home/dozie/magnetcontrol_ws/src/install/magnet_control/lib/magnet_control
+
+Installed /home/dozie/magnetcontrol_ws/src/build/magnet_control
+running symlink_data

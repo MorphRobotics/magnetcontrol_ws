@@ -1,0 +1,26 @@
+running develop
+running egg_info
+creating magnet_control.egg-info
+writing magnet_control.egg-info/PKG-INFO
+writing dependency_links to magnet_control.egg-info/dependency_links.txt
+writing entry points to magnet_control.egg-info/entry_points.txt
+writing requirements to magnet_control.egg-info/requires.txt
+writing top-level names to magnet_control.egg-info/top_level.txt
+writing manifest file 'magnet_control.egg-info/SOURCES.txt'
+reading manifest file 'magnet_control.egg-info/SOURCES.txt'
+writing manifest file 'magnet_control.egg-info/SOURCES.txt'
+running build_ext
+Creating /home/dozie/magnetcontrol_ws/src/install/magnet_control/lib/python3.10/site-packages/magnet-control.egg-link (link to .)
+Installing move_waypoints script to /home/dozie/magnetcontrol_ws/src/install/magnet_control/lib/magnet_control
+Installing mscr_inv_control script to /home/dozie/magnetcontrol_ws/src/install/magnet_control/lib/magnet_control
+Installing mscr_inv_cosserat script to /home/dozie/magnetcontrol_ws/src/install/magnet_control/lib/magnet_control
+
+Installed /home/dozie/magnetcontrol_ws/src/build/magnet_control
+running symlink_data
+creating /home/dozie/magnetcontrol_ws/src/install/magnet_control/share/ament_index
+creating /home/dozie/magnetcontrol_ws/src/install/magnet_control/share/ament_index/resource_index
+creating /home/dozie/magnetcontrol_ws/src/install/magnet_control/share/ament_index/resource_index/packages
+symbolically linking /home/dozie/magnetcontrol_ws/src/build/magnet_control/resource/magnet_control -> /home/dozie/magnetcontrol_ws/src/install/magnet_control/share/ament_index/resource_index/packages
+symbolically linking /home/dozie/magnetcontrol_ws/src/build/magnet_control/package.xml -> /home/dozie/magnetcontrol_ws/src/install/magnet_control/share/magnet_control
+symbolically linking /home/dozie/magnetcontrol_ws/src/build/magnet_control/magnet_control/mscr_inverse_model.onnx -> /home/dozie/magnetcontrol_ws/src/install/magnet_control/lib/magnet_control
+symbolically linking /home/dozie/magnetcontrol_ws/src/build/magnet_control/magnet_control/inv_norm3.mat -> /home/dozie/magnetcontrol_ws/src/install/magnet_control/lib/magnet_control

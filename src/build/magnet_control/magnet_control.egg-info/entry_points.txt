@@ -1,0 +1,7 @@
+[console_scripts]
+lung_navigation_sim = magnet_control.lung_navigation_sim:main
+move_waypoints = magnet_control.move_waypoints:main
+mscr_inv_control = magnet_control.mscr_inv_control:main
+mscr_inv_cosserat = magnet_control.mscr_inv_cosserat:main
+mscr_raw = magnet_control.mscr_raw:main
+

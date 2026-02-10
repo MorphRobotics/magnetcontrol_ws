@@ -1,0 +1,8 @@
+[0.000000] (-) TimerEvent: {}
+[0.000093] (magnet_control) JobQueued: {'identifier': 'magnet_control', 'dependencies': OrderedDict()}
+[0.000171] (magnet_control) JobStarted: {'identifier': 'magnet_control'}
+[0.099583] (-) TimerEvent: {}
+[0.200061] (-) TimerEvent: {}
+[0.300303] (-) TimerEvent: {}
+[0.312405] (magnet_control) JobEnded: {'identifier': 'magnet_control', 'rc': 0}
+[0.322951] (-) EventReactorShutdown: {}
