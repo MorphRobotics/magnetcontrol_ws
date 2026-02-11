@@ -40,7 +40,8 @@ NORM_PATH      = f'{BASE_DIR}/src/magnet_control/magnet_control/inv_norm3.mat'
 L_MSCR         = 60.0        # MSCR length [mm] (0.06 m)
 MAGNET_OFFSET  = 80.0        # Nominal magnet distance from MSCR base [mm]
 ALPHA_SMOOTH   = 0.15        # Exponential smoothing for magnet position
-B_MIN, B_MAX   = 0.0005, 0.012  # |B| clamp range [T]
+#B_MIN, B_MAX   = 0.0005, 0.012  # |B| clamp range [T]
+B_MIN, B_MAX   = 0.0002, 1.2  # |B| clamp range [T]
 NAV_SPEED      = 2.0         # mm per simulation step along path
 MM_TO_M        = 1e-3        # Conversion factor
 
@@ -132,6 +133,7 @@ class LungNavigationSim:
         # MSCR base tracks a position behind the tip by L_MSCR
         self.mscr_base = self.current_pos.copy()
         self.mscr_base[2] += L_MSCR  # base is above tip (trachea direction)
+        self.backbone_dir = np.array([0.0, 0.0, 1.0]) #added
 
         # Magnet (UR5e end-effector) position
         self.magnet_pos = self.current_pos + np.array([MAGNET_OFFSET, 0, 0])
@@ -360,7 +362,9 @@ class LungNavigationSim:
         self.mscr_base = self.current_pos - tangent * L_MSCR
 
         # Compute tip deflection relative to straight MSCR
-        straight_tip = self.mscr_base + tangent * L_MSCR
+        self.backbone_dir = 0.9 * self.backbone_dir + 0.1 * tangent
+        self.backbone_dir /= np.linalg.norm(self.backbone_dir)
+        straight_tip = self.mscr_base + self.backbone_dir * L_MSCR
         deflection_mm = self.current_pos - straight_tip
 
         # If deflection is essentially zero, inject small perturbation for NN
