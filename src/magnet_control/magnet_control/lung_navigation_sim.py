@@ -21,6 +21,7 @@ import heapq
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
+import matplotlib.colors
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
@@ -138,12 +139,25 @@ class LungNavigationSim:
     def _load_stl(self):
         lung_mesh = stl_mesh.Mesh.from_file(STL_PATH)
         self.stl_vectors = lung_mesh.vectors  # (n_tri, 3, 3) in mm
-        self.stl_normals = lung_mesh.normals  # face normals for lighting
-        # Keep more triangles for a solid-looking mesh
+
+        # Subsample triangles for rendering performance
         n_tri = len(self.stl_vectors)
-        step = max(1, n_tri // 15000)
-        self.stl_sub = self.stl_vectors[::step]
-        self.stl_normals_sub = self.stl_normals[::step]
+        step = max(1, n_tri // 12000)
+        sub = self.stl_vectors[::step]
+
+        # Extract unique vertices and triangle indices for plot_trisurf
+        # Flatten to (n*3, 3), then find unique vertices
+        all_verts = sub.reshape(-1, 3)
+        # Round to merge nearby vertices (within 0.01 mm)
+        rounded = np.round(all_verts, decimals=2)
+        _, inverse = np.unique(rounded, axis=0, return_inverse=True)
+        # Rebuild unique vertex array from originals (keep precision)
+        n_unique = inverse.max() + 1
+        unique_verts = np.zeros((n_unique, 3))
+        for i, idx in enumerate(inverse):
+            unique_verts[idx] = all_verts[i]
+        self.mesh_verts = unique_verts
+        self.mesh_tris = inverse.reshape(-1, 3)
 
     # ── State ────────────────────────────────────────────────────────────────
 
@@ -219,34 +233,20 @@ class LungNavigationSim:
     def _draw_lung_mesh(self):
         ax = self.ax3d
 
-        # Compute simple diffuse shading from face normals
-        # Light direction (upper-right-front)
-        light_dir = np.array([0.3, 0.3, 1.0])
-        light_dir /= np.linalg.norm(light_dir)
+        # plot_trisurf handles z-ordering correctly (unlike Poly3DCollection)
+        v = self.mesh_verts
+        t = self.mesh_tris
+        ax.plot_trisurf(
+            v[:, 0], v[:, 1], v[:, 2],
+            triangles=t,
+            color=(0.90, 0.75, 0.72, 0.45),  # semi-transparent tissue tone
+            edgecolor='none',
+            linewidth=0,
+            shade=True,                        # enable built-in lighting
+            lightsource=matplotlib.colors.LightSource(azdeg=315, altdeg=45),
+        )
 
-        normals = self.stl_normals_sub.copy()
-        norms = np.linalg.norm(normals, axis=1, keepdims=True)
-        norms[norms < 1e-12] = 1.0
-        normals = normals / norms
-
-        # Lambertian shading: ambient + diffuse
-        ambient = 0.35
-        diffuse = np.abs(normals @ light_dir)  # abs for double-sided
-        intensity = np.clip(ambient + 0.65 * diffuse, 0, 1)
-
-        # Map intensity to RGBA — pinkish-beige airway colour
-        base_rgb = np.array([0.90, 0.75, 0.72])  # soft tissue tone
-        face_colors = np.zeros((len(intensity), 4))
-        for i in range(3):
-            face_colors[:, i] = np.clip(base_rgb[i] * intensity, 0, 1)
-        face_colors[:, 3] = 0.55  # semi-transparent so path is visible inside
-
-        poly = Poly3DCollection(self.stl_sub, linewidth=0.0)
-        poly.set_facecolor(face_colors)
-        poly.set_edgecolor('none')
-        ax.add_collection3d(poly)
-
-        # Set axis limits from STL bounds
+        # Set axis limits from full STL bounds
         mn = self.stl_vectors.reshape(-1, 3).min(axis=0)
         mx = self.stl_vectors.reshape(-1, 3).max(axis=0)
         pad = 10
@@ -453,10 +453,13 @@ class LungNavigationSim:
     def _update_plots(self):
         # ── 3D scene ──
         ax = self.ax3d
-        # Remove previous dynamic artists (keep mesh)
+        # Remove previous dynamic artists (keep static mesh)
+        # Record how many collections the mesh created on first frame
+        if not hasattr(self, '_n_mesh_collections'):
+            self._n_mesh_collections = len(ax.collections)
         while len(ax.lines) > 0:
             ax.lines[0].remove()
-        while len(ax.collections) > 1:  # keep the STL Poly3D (index 0)
+        while len(ax.collections) > self._n_mesh_collections:
             ax.collections[-1].remove()
 
         # Draw PRM nodes (small, grey)
