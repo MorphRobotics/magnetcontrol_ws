@@ -22,6 +22,7 @@ from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
+from launch_ros.descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
 from ament_index_python.packages import get_package_share_directory
 
@@ -41,7 +42,9 @@ def generate_launch_description():
     paused = LaunchConfiguration('paused', default='false')
 
     # Process xacro to URDF
-    robot_description = Command(['xacro ', urdf_xacro])
+    robot_description = ParameterValue(
+        Command(['xacro ', urdf_xacro]), value_type=str
+    )
 
     # 1. Gazebo
     gazebo = ExecuteProcess(
