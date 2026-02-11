@@ -12,11 +12,11 @@ Real-time graphs display NN output parameters and tip/magnet positions.
 """
 
 import sys
+import os
 import numpy as np
 import scipy.io as sio
 import onnxruntime as ort
 from stl import mesh as stl_mesh
-from collections import deque
 import heapq
 import matplotlib
 matplotlib.use('TkAgg')
@@ -180,19 +180,23 @@ class LungNavigationSim:
         self.magnet_pos = self.current_pos + np.array([MAGNET_OFFSET, 0, 0])
         self.prev_magnet = self.magnet_pos.copy()
 
-        # History buffers for graphs
-        self.max_hist   = 300
-        self.hist_B     = deque(maxlen=self.max_hist)
-        self.hist_az    = deque(maxlen=self.max_hist)
-        self.hist_el    = deque(maxlen=self.max_hist)
-        self.hist_tipX  = deque(maxlen=self.max_hist)
-        self.hist_tipY  = deque(maxlen=self.max_hist)
-        self.hist_tipZ  = deque(maxlen=self.max_hist)
-        self.hist_magX  = deque(maxlen=self.max_hist)
-        self.hist_magY  = deque(maxlen=self.max_hist)
-        self.hist_magZ  = deque(maxlen=self.max_hist)
-        self.hist_t     = deque(maxlen=self.max_hist)
+        # History buffers for graphs (lists to preserve full history for save)
+        self.hist_B     = []
+        self.hist_az    = []
+        self.hist_el    = []
+        self.hist_tipX  = []
+        self.hist_tipY  = []
+        self.hist_tipZ  = []
+        self.hist_magX  = []
+        self.hist_magY  = []
+        self.hist_magZ  = []
+        self.hist_t     = []
         self.step       = 0
+
+        # Segment tracking: vertical dividers for each new path selection
+        self.segment_steps  = []   # step numbers where new paths start
+        self.segment_labels = []   # 'A', 'B', 'C', ...
+        self._segment_count = 0
 
     # ── Visualisation setup ──────────────────────────────────────────────────
 
@@ -362,8 +366,16 @@ class LungNavigationSim:
         self.path_cursor = 0
         self.navigating = True
         self.target_node = target_idx
-        print(f"[NAV] Path has {len(path)} PRM nodes, "
-              f"{len(self.path_points)} interpolated waypoints.")
+
+        # Record segment boundary for plot dividers
+        seg_step = self.step if self.step > 0 else 1
+        label = chr(ord('A') + self._segment_count)
+        self.segment_steps.append(seg_step)
+        self.segment_labels.append(label)
+        self._segment_count += 1
+        print(f"[NAV] Segment {label}: node {src_idx} -> node {target_idx}  "
+              f"({len(path)} PRM nodes, "
+              f"{len(self.path_points)} interpolated waypoints)")
 
     def _interpolate_path(self, points, step_mm=2.0):
         """Resample polyline to uniform step size."""
@@ -396,8 +408,24 @@ class LungNavigationSim:
                 plt.pause(0.03)
         except KeyboardInterrupt:
             pass
+        self._save_final_figure()
         print("\nSimulation ended.")
         plt.close('all')
+
+    def _save_final_figure(self):
+        """Save the final figure as IEEE-quality PDF and PNG."""
+        if len(self.hist_t) == 0:
+            print("[SAVE] No data recorded, skipping save.")
+            return
+        save_dir = os.path.join(BASE_DIR, 'results')
+        os.makedirs(save_dir, exist_ok=True)
+        pdf_path = os.path.join(save_dir, 'mscr_navigation_results.pdf')
+        png_path = os.path.join(save_dir, 'mscr_navigation_results.png')
+        self.fig.savefig(pdf_path, dpi=300, bbox_inches='tight',
+                         pad_inches=0.1)
+        self.fig.savefig(png_path, dpi=300, bbox_inches='tight',
+                         pad_inches=0.1)
+        print(f"[SAVE] Figures saved to:\n       {pdf_path}\n       {png_path}")
 
     def _navigation_step(self):
         if self.path_cursor >= len(self.path_points):
@@ -510,13 +538,15 @@ class LungNavigationSim:
         ax.legend(loc='upper left', fontsize=8, markerscale=0.6, frameon=False)
 
         # ── Time-series graphs (IEEE format) ──
-        t = list(self.hist_t)
+        t = self.hist_t
         if len(t) == 0:
             self.fig.canvas.draw_idle()
             self.fig.canvas.flush_events()
             return
 
-        xlim = (max(0, t[-1] - self.max_hist), t[-1] + 5)
+        xlim = (max(0, t[0]), t[-1] + 5)
+        all_ts_axes = [self.ax_B, self.ax_az, self.ax_el,
+                       self.ax_tx, self.ax_ty, self.ax_tz]
 
         def _ieee_ax(ax_ts):
             """Apply IEEE formatting after cla() resets axis state."""
@@ -526,13 +556,25 @@ class LungNavigationSim:
             for spine in ax_ts.spines.values():
                 spine.set_linewidth(1.2)
 
+        def _draw_segments(ax_ts):
+            """Draw vertical dashed lines and section labels."""
+            ylim = ax_ts.get_ylim()
+            for s_step, s_label in zip(self.segment_steps,
+                                       self.segment_labels):
+                ax_ts.axvline(s_step, color='grey', linestyle='--',
+                              linewidth=0.9, alpha=0.7)
+                ax_ts.text(s_step + 1, ylim[1], s_label,
+                           fontsize=9, fontweight='bold', color='grey',
+                           va='top', ha='left')
+
         def _plot_ts(ax_ts, data, ylabel, title, color):
             ax_ts.cla()
-            ax_ts.plot(t, list(data), color=color, linewidth=1.4)
+            ax_ts.plot(t, data, color=color, linewidth=1.4)
             ax_ts.set_ylabel(ylabel, fontweight='bold', fontsize=10)
             ax_ts.set_title(title, fontweight='bold', fontsize=10)
             ax_ts.set_xlim(xlim)
             _ieee_ax(ax_ts)
+            _draw_segments(ax_ts)
 
         _plot_ts(self.ax_B,  self.hist_B,
                  r'$|\mathbf{B}|$ (mT)', 'Magnetic Field Magnitude',
@@ -546,33 +588,35 @@ class LungNavigationSim:
 
         # Tip vs Magnet X
         self.ax_tx.cla()
-        self.ax_tx.plot(t, list(self.hist_tipX), '#d62728', linewidth=1.4,
+        self.ax_tx.plot(t, self.hist_tipX, '#d62728', linewidth=1.4,
                         label='MSCR Tip')
-        self.ax_tx.plot(t, list(self.hist_magX), '#d62728', linewidth=1.2,
+        self.ax_tx.plot(t, self.hist_magX, '#d62728', linewidth=1.2,
                         linestyle='--', label='Magnet (UR5e)')
         self.ax_tx.set_ylabel('X (mm)', fontweight='bold', fontsize=10)
         self.ax_tx.set_title('X-Axis Position', fontweight='bold', fontsize=10)
         self.ax_tx.legend(loc='upper left', fontsize=8, frameon=False)
         self.ax_tx.set_xlim(xlim)
         _ieee_ax(self.ax_tx)
+        _draw_segments(self.ax_tx)
 
         # Tip vs Magnet Y
         self.ax_ty.cla()
-        self.ax_ty.plot(t, list(self.hist_tipY), '#1f77b4', linewidth=1.4,
+        self.ax_ty.plot(t, self.hist_tipY, '#1f77b4', linewidth=1.4,
                         label='MSCR Tip')
-        self.ax_ty.plot(t, list(self.hist_magY), '#1f77b4', linewidth=1.2,
+        self.ax_ty.plot(t, self.hist_magY, '#1f77b4', linewidth=1.2,
                         linestyle='--', label='Magnet (UR5e)')
         self.ax_ty.set_ylabel('Y (mm)', fontweight='bold', fontsize=10)
         self.ax_ty.set_title('Y-Axis Position', fontweight='bold', fontsize=10)
         self.ax_ty.legend(loc='upper left', fontsize=8, frameon=False)
         self.ax_ty.set_xlim(xlim)
         _ieee_ax(self.ax_ty)
+        _draw_segments(self.ax_ty)
 
         # Tip vs Magnet Z
         self.ax_tz.cla()
-        self.ax_tz.plot(t, list(self.hist_tipZ), '#2ca02c', linewidth=1.4,
+        self.ax_tz.plot(t, self.hist_tipZ, '#2ca02c', linewidth=1.4,
                         label='MSCR Tip')
-        self.ax_tz.plot(t, list(self.hist_magZ), '#2ca02c', linewidth=1.2,
+        self.ax_tz.plot(t, self.hist_magZ, '#2ca02c', linewidth=1.2,
                         linestyle='--', label='Magnet (UR5e)')
         self.ax_tz.set_ylabel('Z (mm)', fontweight='bold', fontsize=10)
         self.ax_tz.set_xlabel('Simulation Step', fontweight='bold', fontsize=10)
@@ -580,6 +624,7 @@ class LungNavigationSim:
         self.ax_tz.legend(loc='upper left', fontsize=8, frameon=False)
         self.ax_tz.set_xlim(xlim)
         _ieee_ax(self.ax_tz)
+        _draw_segments(self.ax_tz)
 
         self.fig.canvas.draw_idle()
         self.fig.canvas.flush_events()
