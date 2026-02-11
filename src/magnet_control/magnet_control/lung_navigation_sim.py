@@ -427,6 +427,34 @@ class LungNavigationSim:
                          pad_inches=0.1)
         print(f"[SAVE] Figures saved to:\n       {pdf_path}\n       {png_path}")
 
+        # Export raw data as CSV
+        csv_path = os.path.join(save_dir, 'mscr_navigation_data.csv')
+        n = len(self.hist_t)
+        # Build segment label column: map each step to its segment letter
+        seg_col = [''] * n
+        for i in range(len(self.segment_steps)):
+            start = self.segment_steps[i]
+            end = self.segment_steps[i + 1] if i + 1 < len(self.segment_steps) else self.hist_t[-1] + 1
+            for j in range(n):
+                if start <= self.hist_t[j] < end:
+                    seg_col[j] = self.segment_labels[i]
+        header = ('step,segment,B_mT,azimuth_deg,elevation_deg,'
+                  'tip_x_mm,tip_y_mm,tip_z_mm,'
+                  'magnet_x_mm,magnet_y_mm,magnet_z_mm')
+        rows = []
+        for i in range(n):
+            rows.append(f'{self.hist_t[i]},{seg_col[i]},'
+                        f'{self.hist_B[i]:.6f},{self.hist_az[i]:.6f},'
+                        f'{self.hist_el[i]:.6f},'
+                        f'{self.hist_tipX[i]:.6f},{self.hist_tipY[i]:.6f},'
+                        f'{self.hist_tipZ[i]:.6f},'
+                        f'{self.hist_magX[i]:.6f},{self.hist_magY[i]:.6f},'
+                        f'{self.hist_magZ[i]:.6f}')
+        with open(csv_path, 'w') as f:
+            f.write(header + '\n')
+            f.write('\n'.join(rows) + '\n')
+        print(f"[SAVE] CSV data saved to:\n       {csv_path}")
+
     def _navigation_step(self):
         if self.path_cursor >= len(self.path_points):
             self.navigating = False
