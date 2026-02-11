@@ -7,12 +7,12 @@ setup(
     name=package_name,
     version='0.0.0',
     packages=find_packages(exclude=['test']),
+    package_data={
+        package_name: ['mscr_inverse_model.onnx', 'inv_norm3.mat'],
+    },
     data_files=[
         ('share/ament_index/resource_index/packages', ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
-        # ONNX model and normalization data
-        (os.path.join('lib', package_name), ['magnet_control/mscr_inverse_model.onnx']),
-        (os.path.join('lib', package_name), ['magnet_control/inv_norm3.mat']),
         # Launch files
         (os.path.join('share', package_name, 'launch'), ['launch/ur5e_airway_sim.launch.py']),
         # Config files

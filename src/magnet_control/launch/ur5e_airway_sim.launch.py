@@ -10,6 +10,7 @@ Launches:
 """
 
 import os
+import tempfile
 from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
@@ -27,23 +28,39 @@ from launch_ros.substitutions import FindPackageShare
 from ament_index_python.packages import get_package_share_directory
 
 
+def _resolve_world_file(world_template, ws_root):
+    """Replace placeholder paths in the world file with the actual workspace root."""
+    with open(world_template, 'r') as f:
+        content = f.read()
+    content = content.replace('/home/user/magnetcontrol_ws', ws_root)
+    tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.world', delete=False)
+    tmp.write(content)
+    tmp.close()
+    return tmp.name
+
+
 def generate_launch_description():
     pkg_share = get_package_share_directory('magnet_control')
+    # Workspace root: e.g. /home/dozie/magnetcontrol_ws
     ws_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(pkg_share))))
 
     # Paths
     urdf_xacro = os.path.join(pkg_share, 'urdf', 'ur5e_magnet.urdf.xacro')
-    world_file = os.path.join(pkg_share, 'worlds', 'bronchial_airway.world')
+    world_template = os.path.join(pkg_share, 'worlds', 'bronchial_airway.world')
     controllers_yaml = os.path.join(pkg_share, 'config', 'ur5e_controllers.yaml')
     rviz_config = os.path.join(pkg_share, 'config', 'airway_sim.rviz')
+
+    # Resolve actual paths in world file
+    world_file = _resolve_world_file(world_template, ws_root)
 
     # Launch arguments
     use_sim_time = LaunchConfiguration('use_sim_time', default='true')
     paused = LaunchConfiguration('paused', default='false')
 
-    # Process xacro to URDF
+    # Process xacro to URDF, passing controllers yaml path
     robot_description = ParameterValue(
-        Command(['xacro ', urdf_xacro]), value_type=str
+        Command(['xacro ', urdf_xacro, ' controllers_yaml:=', controllers_yaml]),
+        value_type=str,
     )
 
     # 1. Gazebo
