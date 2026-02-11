@@ -138,10 +138,12 @@ class LungNavigationSim:
     def _load_stl(self):
         lung_mesh = stl_mesh.Mesh.from_file(STL_PATH)
         self.stl_vectors = lung_mesh.vectors  # (n_tri, 3, 3) in mm
-        # Subsample for rendering performance
+        self.stl_normals = lung_mesh.normals  # face normals for lighting
+        # Keep more triangles for a solid-looking mesh
         n_tri = len(self.stl_vectors)
-        step = max(1, n_tri // 4000)
+        step = max(1, n_tri // 15000)
         self.stl_sub = self.stl_vectors[::step]
+        self.stl_normals_sub = self.stl_normals[::step]
 
     # ── State ────────────────────────────────────────────────────────────────
 
@@ -216,9 +218,32 @@ class LungNavigationSim:
 
     def _draw_lung_mesh(self):
         ax = self.ax3d
-        poly = Poly3DCollection(self.stl_sub, alpha=0.06,
-                                facecolor='lightskyblue', edgecolor='steelblue',
-                                linewidth=0.1)
+
+        # Compute simple diffuse shading from face normals
+        # Light direction (upper-right-front)
+        light_dir = np.array([0.3, 0.3, 1.0])
+        light_dir /= np.linalg.norm(light_dir)
+
+        normals = self.stl_normals_sub.copy()
+        norms = np.linalg.norm(normals, axis=1, keepdims=True)
+        norms[norms < 1e-12] = 1.0
+        normals = normals / norms
+
+        # Lambertian shading: ambient + diffuse
+        ambient = 0.35
+        diffuse = np.abs(normals @ light_dir)  # abs for double-sided
+        intensity = np.clip(ambient + 0.65 * diffuse, 0, 1)
+
+        # Map intensity to RGBA — pinkish-beige airway colour
+        base_rgb = np.array([0.90, 0.75, 0.72])  # soft tissue tone
+        face_colors = np.zeros((len(intensity), 4))
+        for i in range(3):
+            face_colors[:, i] = np.clip(base_rgb[i] * intensity, 0, 1)
+        face_colors[:, 3] = 0.55  # semi-transparent so path is visible inside
+
+        poly = Poly3DCollection(self.stl_sub, linewidth=0.0)
+        poly.set_facecolor(face_colors)
+        poly.set_edgecolor('none')
         ax.add_collection3d(poly)
 
         # Set axis limits from STL bounds
@@ -232,6 +257,9 @@ class LungNavigationSim:
         ax.set_ylabel('Y (mm)', fontweight='bold', fontsize=10)
         ax.set_zlabel('Z (mm)', fontweight='bold', fontsize=10)
         ax.set_title('Bronchial Tree Phantom', fontweight='bold', fontsize=11)
+
+        # Set a clean viewing angle
+        ax.view_init(elev=25, azim=-60)
 
     # ── PRM shortest path (Dijkstra) ────────────────────────────────────────
 
