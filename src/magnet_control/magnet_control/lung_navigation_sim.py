@@ -25,6 +25,33 @@ from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 # ──────────────────────────────────────────────────────────────────────────────
+# IEEE PLOT STYLE
+# ──────────────────────────────────────────────────────────────────────────────
+plt.rcParams.update({
+    'font.family':        'serif',
+    'font.serif':         ['Times New Roman', 'Times', 'DejaVu Serif'],
+    'font.size':          10,
+    'axes.labelsize':     10,
+    'axes.titlesize':     11,
+    'axes.labelweight':   'bold',
+    'axes.titleweight':   'bold',
+    'axes.linewidth':     1.2,
+    'xtick.labelsize':    9,
+    'ytick.labelsize':    9,
+    'xtick.direction':    'in',
+    'ytick.direction':    'in',
+    'xtick.major.width':  1.0,
+    'ytick.major.width':  1.0,
+    'legend.fontsize':    8,
+    'legend.frameon':     False,
+    'figure.dpi':         100,
+    'savefig.dpi':        300,
+    'savefig.bbox':       'tight',
+    'axes.grid':          False,
+    'mathtext.fontset':   'stix',
+})
+
+# ──────────────────────────────────────────────────────────────────────────────
 # FILE PATHS (adjust if needed)
 # ──────────────────────────────────────────────────────────────────────────────
 BASE_DIR       = '/home/dozie/magnetcontrol_ws'
@@ -156,12 +183,12 @@ class LungNavigationSim:
     def _init_figures(self):
         plt.ion()
         self.fig = plt.figure(figsize=(20, 11))
-        self.fig.suptitle('MSCR Lung Navigation — UR5e Magnetic Actuation',
-                          fontsize=14, fontweight='bold')
+        self.fig.suptitle('MSCR Lung Navigation with UR5e Magnetic Actuation',
+                          fontsize=14, fontweight='bold', fontfamily='serif')
 
         # Layout: left half = 3D scene, right column = 6 graphs
         gs = self.fig.add_gridspec(6, 2, width_ratios=[1.4, 1],
-                                   hspace=0.45, wspace=0.30)
+                                   hspace=0.55, wspace=0.35)
 
         # 3D lung view (spans all 6 rows on the left)
         self.ax3d = self.fig.add_subplot(gs[:, 0], projection='3d')
@@ -173,6 +200,13 @@ class LungNavigationSim:
         self.ax_tx = self.fig.add_subplot(gs[3, 1])
         self.ax_ty = self.fig.add_subplot(gs[4, 1])
         self.ax_tz = self.fig.add_subplot(gs[5, 1])
+
+        # Apply IEEE spine styling to all 2D axes
+        for ax in [self.ax_B, self.ax_az, self.ax_el,
+                   self.ax_tx, self.ax_ty, self.ax_tz]:
+            for spine in ax.spines.values():
+                spine.set_linewidth(1.2)
+            ax.tick_params(direction='in', top=True, right=True)
 
         # Draw static STL mesh once
         self._draw_lung_mesh()
@@ -194,10 +228,10 @@ class LungNavigationSim:
         ax.set_xlim(mn[0] - pad, mx[0] + pad)
         ax.set_ylim(mn[1] - pad, mx[1] + pad)
         ax.set_zlim(mn[2] - pad, mx[2] + pad)
-        ax.set_xlabel('X [mm]')
-        ax.set_ylabel('Y [mm]')
-        ax.set_zlabel('Z [mm]')
-        ax.set_title('Bronchial Tree — click to set target')
+        ax.set_xlabel('X (mm)', fontweight='bold', fontsize=10)
+        ax.set_ylabel('Y (mm)', fontweight='bold', fontsize=10)
+        ax.set_zlabel('Z (mm)', fontweight='bold', fontsize=10)
+        ax.set_title('Bronchial Tree Phantom', fontweight='bold', fontsize=11)
 
     # ── PRM shortest path (Dijkstra) ────────────────────────────────────────
 
@@ -441,56 +475,80 @@ class LungNavigationSim:
             ax.scatter(*self.nodes[self.target_node], color='gold', s=120,
                        marker='*', depthshade=False, label='Target')
 
-        ax.set_title('Bronchial Tree Navigation — click to set target')
-        ax.legend(loc='upper left', fontsize=7, markerscale=0.6)
+        ax.set_title('Bronchial Tree Navigation', fontweight='bold', fontsize=11)
+        ax.legend(loc='upper left', fontsize=8, markerscale=0.6, frameon=False)
 
-        # ── Time-series graphs ──
+        # ── Time-series graphs (IEEE format) ──
         t = list(self.hist_t)
         if len(t) == 0:
             self.fig.canvas.draw_idle()
             self.fig.canvas.flush_events()
             return
 
-        def _plot_ts(ax_ts, data, ylabel, color, label):
+        xlim = (max(0, t[-1] - self.max_hist), t[-1] + 5)
+
+        def _ieee_ax(ax_ts):
+            """Apply IEEE formatting after cla() resets axis state."""
+            ax_ts.grid(False)
+            ax_ts.tick_params(direction='in', top=True, right=True,
+                              labelsize=9)
+            for spine in ax_ts.spines.values():
+                spine.set_linewidth(1.2)
+
+        def _plot_ts(ax_ts, data, ylabel, title, color):
             ax_ts.cla()
-            ax_ts.plot(t, list(data), color=color, linewidth=1.2)
-            ax_ts.set_ylabel(ylabel, fontsize=8)
-            ax_ts.tick_params(labelsize=7)
-            ax_ts.grid(True, alpha=0.3)
-            ax_ts.set_xlim(max(0, t[-1] - self.max_hist), t[-1] + 5)
+            ax_ts.plot(t, list(data), color=color, linewidth=1.4)
+            ax_ts.set_ylabel(ylabel, fontweight='bold', fontsize=10)
+            ax_ts.set_title(title, fontweight='bold', fontsize=10)
+            ax_ts.set_xlim(xlim)
+            _ieee_ax(ax_ts)
 
-        _plot_ts(self.ax_B,  self.hist_B,  '|B| [mT]',        '#e74c3c', '|B|')
-        _plot_ts(self.ax_az, self.hist_az, 'Azimuth [deg]',    '#3498db', 'Az')
-        _plot_ts(self.ax_el, self.hist_el, 'Elevation [deg]',  '#2ecc71', 'El')
+        _plot_ts(self.ax_B,  self.hist_B,
+                 r'$|\mathbf{B}|$ (mT)', 'Magnetic Field Magnitude',
+                 '#d62728')
+        _plot_ts(self.ax_az, self.hist_az,
+                 r'$\phi$ (deg)', 'Azimuth Angle',
+                 '#1f77b4')
+        _plot_ts(self.ax_el, self.hist_el,
+                 r'$\theta$ (deg)', 'Elevation Angle',
+                 '#2ca02c')
 
-        # Tip position
+        # Tip vs Magnet X
         self.ax_tx.cla()
-        self.ax_tx.plot(t, list(self.hist_tipX), '#e74c3c', linewidth=1, label='Tip X')
-        self.ax_tx.plot(t, list(self.hist_magX), '#e74c3c', linewidth=1, linestyle='--', label='Mag X')
-        self.ax_tx.set_ylabel('X [mm]', fontsize=8)
-        self.ax_tx.legend(fontsize=6, loc='upper left')
-        self.ax_tx.tick_params(labelsize=7)
-        self.ax_tx.grid(True, alpha=0.3)
-        self.ax_tx.set_xlim(max(0, t[-1] - self.max_hist), t[-1] + 5)
+        self.ax_tx.plot(t, list(self.hist_tipX), '#d62728', linewidth=1.4,
+                        label='MSCR Tip')
+        self.ax_tx.plot(t, list(self.hist_magX), '#d62728', linewidth=1.2,
+                        linestyle='--', label='Magnet (UR5e)')
+        self.ax_tx.set_ylabel('X (mm)', fontweight='bold', fontsize=10)
+        self.ax_tx.set_title('X-Axis Position', fontweight='bold', fontsize=10)
+        self.ax_tx.legend(loc='upper left', fontsize=8, frameon=False)
+        self.ax_tx.set_xlim(xlim)
+        _ieee_ax(self.ax_tx)
 
+        # Tip vs Magnet Y
         self.ax_ty.cla()
-        self.ax_ty.plot(t, list(self.hist_tipY), '#3498db', linewidth=1, label='Tip Y')
-        self.ax_ty.plot(t, list(self.hist_magY), '#3498db', linewidth=1, linestyle='--', label='Mag Y')
-        self.ax_ty.set_ylabel('Y [mm]', fontsize=8)
-        self.ax_ty.legend(fontsize=6, loc='upper left')
-        self.ax_ty.tick_params(labelsize=7)
-        self.ax_ty.grid(True, alpha=0.3)
-        self.ax_ty.set_xlim(max(0, t[-1] - self.max_hist), t[-1] + 5)
+        self.ax_ty.plot(t, list(self.hist_tipY), '#1f77b4', linewidth=1.4,
+                        label='MSCR Tip')
+        self.ax_ty.plot(t, list(self.hist_magY), '#1f77b4', linewidth=1.2,
+                        linestyle='--', label='Magnet (UR5e)')
+        self.ax_ty.set_ylabel('Y (mm)', fontweight='bold', fontsize=10)
+        self.ax_ty.set_title('Y-Axis Position', fontweight='bold', fontsize=10)
+        self.ax_ty.legend(loc='upper left', fontsize=8, frameon=False)
+        self.ax_ty.set_xlim(xlim)
+        _ieee_ax(self.ax_ty)
 
+        # Tip vs Magnet Z
         self.ax_tz.cla()
-        self.ax_tz.plot(t, list(self.hist_tipZ), '#2ecc71', linewidth=1, label='Tip Z')
-        self.ax_tz.plot(t, list(self.hist_magZ), '#2ecc71', linewidth=1, linestyle='--', label='Mag Z')
-        self.ax_tz.set_ylabel('Z [mm]', fontsize=8)
-        self.ax_tz.set_xlabel('Step', fontsize=8)
-        self.ax_tz.legend(fontsize=6, loc='upper left')
-        self.ax_tz.tick_params(labelsize=7)
-        self.ax_tz.grid(True, alpha=0.3)
-        self.ax_tz.set_xlim(max(0, t[-1] - self.max_hist), t[-1] + 5)
+        self.ax_tz.plot(t, list(self.hist_tipZ), '#2ca02c', linewidth=1.4,
+                        label='MSCR Tip')
+        self.ax_tz.plot(t, list(self.hist_magZ), '#2ca02c', linewidth=1.2,
+                        linestyle='--', label='Magnet (UR5e)')
+        self.ax_tz.set_ylabel('Z (mm)', fontweight='bold', fontsize=10)
+        self.ax_tz.set_xlabel('Simulation Step', fontweight='bold', fontsize=10)
+        self.ax_tz.set_title('Z-Axis Position', fontweight='bold', fontsize=10)
+        self.ax_tz.legend(loc='upper left', fontsize=8, frameon=False)
+        self.ax_tz.set_xlim(xlim)
+        _ieee_ax(self.ax_tz)
 
         self.fig.canvas.draw_idle()
         self.fig.canvas.flush_events()

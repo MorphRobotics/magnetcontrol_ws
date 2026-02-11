@@ -28,6 +28,33 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import csv
+
+# ──────────────────────────────────────────────────────────────────────────────
+# IEEE PLOT STYLE
+# ──────────────────────────────────────────────────────────────────────────────
+plt.rcParams.update({
+    'font.family':        'serif',
+    'font.serif':         ['Times New Roman', 'Times', 'DejaVu Serif'],
+    'font.size':          10,
+    'axes.labelsize':     10,
+    'axes.titlesize':     11,
+    'axes.labelweight':   'bold',
+    'axes.titleweight':   'bold',
+    'axes.linewidth':     1.2,
+    'xtick.labelsize':    9,
+    'ytick.labelsize':    9,
+    'xtick.direction':    'in',
+    'ytick.direction':    'in',
+    'xtick.major.width':  1.0,
+    'ytick.major.width':  1.0,
+    'legend.fontsize':    8,
+    'legend.frameon':     False,
+    'figure.dpi':         100,
+    'savefig.dpi':        300,
+    'savefig.bbox':       'tight',
+    'axes.grid':          False,
+    'mathtext.fontset':   'stix',
+})
 import time
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -392,8 +419,8 @@ class UR5eAirwaySimulation:
         plt.ion()
         self.fig = plt.figure(figsize=(22, 12))
         self.fig.suptitle(
-            'UR5e + MSCR Bronchial Airway Navigation — Physical Simulation',
-            fontsize=14, fontweight='bold'
+            'UR5e + MSCR Bronchial Airway Navigation Simulation',
+            fontsize=14, fontweight='bold', fontfamily='serif'
         )
 
         # Layout: 3 columns
@@ -401,7 +428,7 @@ class UR5eAirwaySimulation:
         # Col 1: UR5e arm view (rows 0-2), joint angles (rows 3-5)
         # Col 2: NN outputs (rows 0-2), tip/magnet pos (rows 3-5)
         gs = self.fig.add_gridspec(6, 3, width_ratios=[1.3, 1.0, 0.9],
-                                   hspace=0.50, wspace=0.35)
+                                   hspace=0.55, wspace=0.40)
 
         # 3D lung + navigation view
         self.ax_lung = self.fig.add_subplot(gs[:, 0], projection='3d')
@@ -424,6 +451,14 @@ class UR5eAirwaySimulation:
         self.ax_tx = self.fig.add_subplot(gs[4, 2])
         self.ax_tz = self.fig.add_subplot(gs[5, 2])
 
+        # Apply IEEE spine styling to all 2D axes
+        for ax in [self.ax_q1, self.ax_q2, self.ax_q3,
+                   self.ax_B, self.ax_az, self.ax_el,
+                   self.ax_F, self.ax_tx, self.ax_tz]:
+            for spine in ax.spines.values():
+                spine.set_linewidth(1.2)
+            ax.tick_params(direction='in', top=True, right=True)
+
         self._draw_lung_mesh()
         self.fig.canvas.mpl_connect('button_press_event', self._on_click)
 
@@ -439,9 +474,9 @@ class UR5eAirwaySimulation:
         ax.set_xlim(mn[0]-pad, mx[0]+pad)
         ax.set_ylim(mn[1]-pad, mx[1]+pad)
         ax.set_zlim(mn[2]-pad, mx[2]+pad)
-        ax.set_xlabel('X [mm]')
-        ax.set_ylabel('Y [mm]')
-        ax.set_zlabel('Z [mm]')
+        ax.set_xlabel('X (mm)', fontweight='bold', fontsize=10)
+        ax.set_ylabel('Y (mm)', fontweight='bold', fontsize=10)
+        ax.set_zlabel('Z (mm)', fontweight='bold', fontsize=10)
 
     # ── PRM shortest path (Dijkstra) ─────────────────────────────────────────
 
@@ -676,8 +711,8 @@ class UR5eAirwaySimulation:
         if self.target_node is not None:
             ax.scatter(*self.nodes[self.target_node], color='gold', s=120,
                        marker='*', depthshade=False, label='Target')
-        ax.set_title('Bronchial Navigation — click to set target', fontsize=9)
-        ax.legend(loc='upper left', fontsize=6, markerscale=0.5)
+        ax.set_title('Bronchial Tree Navigation', fontweight='bold', fontsize=11)
+        ax.legend(loc='upper left', fontsize=8, markerscale=0.5, frameon=False)
 
         # ── 3D UR5e arm view ──
         ax2 = self.ax_arm
@@ -697,61 +732,83 @@ class UR5eAirwaySimulation:
                  [tcp[1], tcp[1]+mag_dir[1]],
                  [tcp[2], tcp[2]+mag_dir[2]],
                  'r-', linewidth=4, label='Magnet')
-        ax2.set_xlabel('X [m]', fontsize=7)
-        ax2.set_ylabel('Y [m]', fontsize=7)
-        ax2.set_zlabel('Z [m]', fontsize=7)
-        ax2.set_title('UR5e Arm Configuration', fontsize=9)
-        ax2.legend(fontsize=6)
+        ax2.set_xlabel('X (m)', fontweight='bold', fontsize=10)
+        ax2.set_ylabel('Y (m)', fontweight='bold', fontsize=10)
+        ax2.set_zlabel('Z (m)', fontweight='bold', fontsize=10)
+        ax2.set_title('UR5e Arm Configuration', fontweight='bold', fontsize=11)
+        ax2.legend(fontsize=8, frameon=False)
         ax2.set_xlim(-0.8, 0.8)
         ax2.set_ylim(-0.8, 0.8)
         ax2.set_zlim(-0.2, 1.0)
-        ax2.tick_params(labelsize=6)
+        ax2.tick_params(labelsize=9)
 
-        # ── Time-series ──
+        # ── Time-series (IEEE format) ──
         t = list(self.hist_t)
         if len(t) == 0:
             self.fig.canvas.draw_idle()
             self.fig.canvas.flush_events()
             return
 
-        def _ts(ax_ts, data, ylabel, color):
-            ax_ts.cla()
-            ax_ts.plot(t, list(data), color=color, linewidth=1.2)
-            ax_ts.set_ylabel(ylabel, fontsize=7)
-            ax_ts.tick_params(labelsize=6)
-            ax_ts.grid(True, alpha=0.3)
-            ax_ts.set_xlim(max(0, t[-1]-self.max_hist), t[-1]+5)
+        xlim = (max(0, t[-1] - self.max_hist), t[-1] + 5)
 
-        _ts(self.ax_B,  self.hist_B,  '|B| [mT]',      '#e74c3c')
-        _ts(self.ax_az, self.hist_az, 'Az [deg]',       '#3498db')
-        _ts(self.ax_el, self.hist_el, 'El [deg]',       '#2ecc71')
-        _ts(self.ax_F,  self.hist_F,  'F_mag [mN]',     '#e67e22')
+        def _ieee_ax(ax_ts):
+            """Apply IEEE formatting after cla() resets axis state."""
+            ax_ts.grid(False)
+            ax_ts.tick_params(direction='in', top=True, right=True,
+                              labelsize=9)
+            for spine in ax_ts.spines.values():
+                spine.set_linewidth(1.2)
+
+        def _ts(ax_ts, data, ylabel, title, color):
+            ax_ts.cla()
+            ax_ts.plot(t, list(data), color=color, linewidth=1.4)
+            ax_ts.set_ylabel(ylabel, fontweight='bold', fontsize=10)
+            ax_ts.set_title(title, fontweight='bold', fontsize=10)
+            ax_ts.set_xlim(xlim)
+            _ieee_ax(ax_ts)
+
+        _ts(self.ax_B,  self.hist_B,
+            r'$|\mathbf{B}|$ (mT)', 'Magnetic Field Magnitude', '#d62728')
+        _ts(self.ax_az, self.hist_az,
+            r'$\phi$ (deg)', 'Azimuth Angle', '#1f77b4')
+        _ts(self.ax_el, self.hist_el,
+            r'$\theta$ (deg)', 'Elevation Angle', '#2ca02c')
+        _ts(self.ax_F,  self.hist_F,
+            r'$|\mathbf{F}|$ (mN)', 'Magnetic Force Magnitude', '#ff7f0e')
 
         # Joint angles
-        _ts(self.ax_q1, self.hist_q1, 'q1 [deg]', '#9b59b6')
-        _ts(self.ax_q2, self.hist_q2, 'q2 [deg]', '#1abc9c')
-        _ts(self.ax_q3, self.hist_q3, 'q3 [deg]', '#e74c3c')
+        _ts(self.ax_q1, self.hist_q1,
+            r'$q_1$ (deg)', 'Joint 1 (Shoulder Pan)', '#9467bd')
+        _ts(self.ax_q2, self.hist_q2,
+            r'$q_2$ (deg)', 'Joint 2 (Shoulder Lift)', '#17becf')
+        _ts(self.ax_q3, self.hist_q3,
+            r'$q_3$ (deg)', 'Joint 3 (Elbow)', '#d62728')
+        self.ax_q3.set_xlabel('Simulation Step', fontweight='bold', fontsize=10)
 
         # Tip X vs Magnet X
         self.ax_tx.cla()
-        self.ax_tx.plot(t, list(self.hist_tipX), '#e74c3c', linewidth=1, label='Tip X')
-        self.ax_tx.plot(t, list(self.hist_magX), '#e74c3c', linewidth=1, ls='--', label='Mag X')
-        self.ax_tx.set_ylabel('X [mm]', fontsize=7)
-        self.ax_tx.legend(fontsize=5)
-        self.ax_tx.tick_params(labelsize=6)
-        self.ax_tx.grid(True, alpha=0.3)
-        self.ax_tx.set_xlim(max(0, t[-1]-self.max_hist), t[-1]+5)
+        self.ax_tx.plot(t, list(self.hist_tipX), '#d62728', linewidth=1.4,
+                        label='MSCR Tip')
+        self.ax_tx.plot(t, list(self.hist_magX), '#d62728', linewidth=1.2,
+                        ls='--', label='Magnet (UR5e)')
+        self.ax_tx.set_ylabel('X (mm)', fontweight='bold', fontsize=10)
+        self.ax_tx.set_title('X-Axis Position', fontweight='bold', fontsize=10)
+        self.ax_tx.legend(fontsize=8, frameon=False)
+        self.ax_tx.set_xlim(xlim)
+        _ieee_ax(self.ax_tx)
 
         # Tip Z vs Magnet Z
         self.ax_tz.cla()
-        self.ax_tz.plot(t, list(self.hist_tipZ), '#2ecc71', linewidth=1, label='Tip Z')
-        self.ax_tz.plot(t, list(self.hist_magZ), '#2ecc71', linewidth=1, ls='--', label='Mag Z')
-        self.ax_tz.set_ylabel('Z [mm]', fontsize=7)
-        self.ax_tz.set_xlabel('Step', fontsize=7)
-        self.ax_tz.legend(fontsize=5)
-        self.ax_tz.tick_params(labelsize=6)
-        self.ax_tz.grid(True, alpha=0.3)
-        self.ax_tz.set_xlim(max(0, t[-1]-self.max_hist), t[-1]+5)
+        self.ax_tz.plot(t, list(self.hist_tipZ), '#2ca02c', linewidth=1.4,
+                        label='MSCR Tip')
+        self.ax_tz.plot(t, list(self.hist_magZ), '#2ca02c', linewidth=1.2,
+                        ls='--', label='Magnet (UR5e)')
+        self.ax_tz.set_ylabel('Z (mm)', fontweight='bold', fontsize=10)
+        self.ax_tz.set_xlabel('Simulation Step', fontweight='bold', fontsize=10)
+        self.ax_tz.set_title('Z-Axis Position', fontweight='bold', fontsize=10)
+        self.ax_tz.legend(fontsize=8, frameon=False)
+        self.ax_tz.set_xlim(xlim)
+        _ieee_ax(self.ax_tz)
 
         self.fig.canvas.draw_idle()
         self.fig.canvas.flush_events()
